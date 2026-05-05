@@ -1,0 +1,5 @@
+[phases.setup]
+aptPkgs = ["libreoffice", "libreoffice-writer", "default-jre"]
+
+[start]
+cmd = "node src/index.js"
