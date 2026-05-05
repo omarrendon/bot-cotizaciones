@@ -14,12 +14,14 @@ Bot de Telegram que lee imágenes de cotizaciones escritas a mano y genera autom
 ## Instalación
 
 ### 1. Clonar el proyecto
+
 ```bash
 git clone <tu-repo>
 cd cotizador-bot
 ```
 
 ### 2. Instalar dependencias
+
 ```bash
 npm install
 ```
@@ -27,21 +29,25 @@ npm install
 ### 3. Instalar LibreOffice (necesario para convertir a PDF)
 
 **macOS:**
+
 ```bash
 brew install --cask libreoffice
 ```
 
 **Ubuntu/Debian (Railway ya lo tiene):**
+
 ```bash
 sudo apt-get install -y libreoffice
 ```
 
 ### 4. Configurar variables de entorno
+
 ```bash
 cp .env.example .env
 ```
 
 Edita `.env` y agrega:
+
 - `TELEGRAM_BOT_TOKEN` → lo obtienes hablando con @BotFather en Telegram
 - `ANTHROPIC_API_KEY` → lo obtienes en https://console.anthropic.com
 
@@ -54,6 +60,7 @@ Edita `.env` y agrega:
 5. Copia el token que te da y ponlo en `.env`
 
 ### 6. Iniciar el bot
+
 ```bash
 npm start
 ```
@@ -93,19 +100,8 @@ cotizador-bot/
 
 ## Comandos del bot
 
-| Comando | Descripción |
-|---------|-------------|
-| `/start` | Bienvenida e instrucciones |
+| Comando  | Descripción                           |
+| -------- | ------------------------------------- |
+| `/start` | Bienvenida e instrucciones            |
 | `/ayuda` | Guía de uso y tips para mejores fotos |
-| 📸 Foto | Procesa la imagen y devuelve el PDF |
-
----
-
-## Costos estimados (10-20 cotizaciones/día)
-
-| Servicio | Costo estimado |
-|----------|---------------|
-| Railway | ~$0-2 USD/mes |
-| Claude API (Vision) | ~$1-3 USD/mes |
-| Telegram Bot API | Gratis |
-| **Total** | **~$1-5 USD/mes** |
+| 📸 Foto  | Procesa la imagen y devuelve el PDF   |
