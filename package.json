@@ -8,12 +8,14 @@
     "dev": "nodemon src/index.js"
   },
   "dependencies": {
-    "node-telegram-bot-api": "^0.66.0",
     "@anthropic-ai/sdk": "^0.24.0",
-    "docx": "^8.5.0",
     "axios": "^1.7.0",
+    "docx": "^8.5.0",
+    "docxtemplater": "^3.68.6",
     "dotenv": "^16.4.0",
-    "form-data": "^4.0.0"
+    "form-data": "^4.0.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "pizzip": "^3.2.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

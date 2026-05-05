@@ -1,27 +1,24 @@
 // src/services/documento.service.js
-// Servicio para generar el documento Word y convertirlo a PDF
+// Genera cotización rellenando el template Word oficial con los datos extraídos
 
-const {
-  Document,
-  Packer,
-  Paragraph,
-  TextRun,
-  Table,
-  TableRow,
-  TableCell,
-  AlignmentType,
-  BorderStyle,
-  WidthType,
-  ShadingType,
-  VerticalAlign,
-  UnderlineType,
-} = require("docx");
+const PizZip = require("pizzip");
 const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
 
-// ─── Helpers de formato ───────────────────────────────────────────────────────
+const TEMPLATE_PATH = path.join(__dirname, "../../template/machote_san_fernando.docx");
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function escapeXml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
 
 function formatearMoneda(valor) {
   return `$${Number(valor).toLocaleString("es-MX", {
@@ -30,123 +27,100 @@ function formatearMoneda(valor) {
   })}`;
 }
 
-function obtenerFechaActual() {
-  return new Date().toLocaleDateString("es-MX", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+// Genera un ID hex de 8 chars único por índice y posición
+function makeParaId(rowIdx, pos) {
+  return ((rowIdx * 100 + pos + 0x10000) >>> 0).toString(16).padStart(8, "0").toUpperCase();
 }
 
-// ─── Estilos compartidos ──────────────────────────────────────────────────────
+// ─── Generación de fila de producto ──────────────────────────────────────────
 
-const FONT = "Arial";
-const COLOR_HEADER = "1F3864"; // Azul oscuro
-const COLOR_SUBHEADER = "2E75B6"; // Azul medio
-const COLOR_ACCENT = "D6E4F0"; // Azul claro (fondo encabezados tabla)
-const COLOR_TOTAL_BG = "1F3864"; // Fondo totales
-
-const borderGris = { style: BorderStyle.SINGLE, size: 4, color: "AAAAAA" };
-const borderBlancoFino = {
-  style: BorderStyle.SINGLE,
-  size: 1,
-  color: "FFFFFF",
-};
-const sinBorde = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
-const borders = {
-  top: borderGris,
-  bottom: borderGris,
-  left: borderGris,
-  right: borderGris,
-};
-const bordersTotal = {
-  top: borderBlancoFino,
-  bottom: borderBlancoFino,
-  left: sinBorde,
-  right: sinBorde,
-};
-
-// ─── Funciones de celda ───────────────────────────────────────────────────────
-
-function celdaEncabezado(texto, width, center = true) {
-  return new TableCell({
-    borders,
-    width: { size: width, type: WidthType.DXA },
-    shading: { fill: COLOR_HEADER, type: ShadingType.CLEAR },
-    margins: { top: 100, bottom: 100, left: 120, right: 120 },
-    verticalAlign: VerticalAlign.CENTER,
-    children: [
-      new Paragraph({
-        alignment: center ? AlignmentType.CENTER : AlignmentType.LEFT,
-        children: [
-          new TextRun({
-            text: texto,
-            bold: true,
-            color: "FFFFFF",
-            size: 20,
-            font: FONT,
-          }),
-        ],
-      }),
-    ],
+/**
+ * Toma el XML de la fila vacía del template y la rellena con los datos del producto.
+ * Procesa las celdas de derecha a izquierda para no alterar posiciones.
+ */
+function generarFilaProducto(templateRowXml, producto, rowIdx) {
+  // Reemplazar paraIds para evitar duplicados
+  let counter = 0;
+  let rowXml = templateRowXml.replace(/w14:paraId="[^"]*"/g, () => {
+    return `w14:paraId="${makeParaId(rowIdx, counter++)}"`;
   });
+
+  // Quitar bookmarks que podrían causar conflictos de ID
+  rowXml = rowXml
+    .replace(/<w:bookmarkStart[^/]*\/>/g, "")
+    .replace(/<w:bookmarkEnd[^/]*\/>/g, "");
+
+  // Localizar las 4 celdas (CANT, DESCRIPCION, P.U., IMPORTE)
+  const celdas = [];
+  let pos = 0;
+  while (true) {
+    const inicio = rowXml.indexOf("<w:tc>", pos);
+    if (inicio === -1) break;
+    const fin = rowXml.indexOf("</w:tc>", inicio) + 7;
+    celdas.push({ inicio, fin });
+    pos = fin;
+  }
+
+  if (celdas.length !== 4) return templateRowXml; // seguridad
+
+  // Textos para cada celda
+  const textos = [
+    escapeXml(String(producto.cantidad)),
+    escapeXml(producto.descripcion),
+    escapeXml(formatearMoneda(producto.precioUnitario)),
+    escapeXml(formatearMoneda(producto.cantidad * producto.precioUnitario)),
+  ];
+
+  // Inyectar texto de derecha a izquierda (para no alterar posiciones previas)
+  let resultado = rowXml;
+  for (let i = celdas.length - 1; i >= 0; i--) {
+    const celdaXml = resultado.substring(celdas[i].inicio, celdas[i].fin);
+    const idxPprEnd = celdaXml.lastIndexOf("</w:pPr>");
+    if (idxPprEnd !== -1) {
+      const insertarEn = idxPprEnd + "</w:pPr>".length;
+      const run = `<w:r><w:rPr><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">${textos[i]}</w:t></w:r>`;
+      const nuevaCelda = celdaXml.substring(0, insertarEn) + run + celdaXml.substring(insertarEn);
+      resultado =
+        resultado.substring(0, celdas[i].inicio) +
+        nuevaCelda +
+        resultado.substring(celdas[i].fin);
+    }
+  }
+
+  return resultado;
 }
 
-function celdaDato(texto, width, center = false, bold = false) {
-  return new TableCell({
-    borders,
-    width: { size: width, type: WidthType.DXA },
-    margins: { top: 80, bottom: 80, left: 120, right: 120 },
-    verticalAlign: VerticalAlign.CENTER,
-    children: [
-      new Paragraph({
-        alignment: center ? AlignmentType.CENTER : AlignmentType.LEFT,
-        children: [
-          new TextRun({
-            text: texto,
-            size: 20,
-            font: FONT,
-            bold,
-          }),
-        ],
-      }),
-    ],
-  });
-}
+// ─── Inyección de valor en celda de totales ───────────────────────────────────
 
-function celdaTotal(texto, width, esEtiqueta = false, colorFondo = COLOR_TOTAL_BG) {
-  return new TableCell({
-    borders: bordersTotal,
-    width: { size: width, type: WidthType.DXA },
-    shading: { fill: colorFondo, type: ShadingType.CLEAR },
-    margins: { top: 80, bottom: 80, left: 120, right: 120 },
-    verticalAlign: VerticalAlign.CENTER,
-    children: [
-      new Paragraph({
-        alignment: esEtiqueta ? AlignmentType.RIGHT : AlignmentType.RIGHT,
-        children: [
-          new TextRun({
-            text: texto,
-            bold: true,
-            color: "FFFFFF",
-            size: 20,
-            font: FONT,
-          }),
-        ],
-      }),
-    ],
-  });
+/**
+ * Inserta texto en la celda IMPORTE de las filas SUBTOTAL/IVA/TOTAL,
+ * identificadas por el paraId único de esa celda en el template.
+ */
+function insertarValorEnCelda(docXml, paraId, texto) {
+  const marker = `w14:paraId="${paraId}"`;
+  const markerPos = docXml.indexOf(marker);
+  if (markerPos === -1) return docXml;
+
+  // Buscar </w:pPr> dentro de este mismo párrafo (acotado al siguiente </w:p>)
+  const pEnd = docXml.indexOf("</w:p>", markerPos);
+  const pprEnd = docXml.indexOf("</w:pPr>", markerPos);
+  if (pprEnd === -1 || pprEnd > pEnd) return docXml;
+
+  const insertarEn = pprEnd + "</w:pPr>".length;
+  const run = `<w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">${escapeXml(texto)}</w:t></w:r>`;
+
+  return docXml.substring(0, insertarEn) + run + docXml.substring(insertarEn);
 }
 
 // ─── Generador principal ──────────────────────────────────────────────────────
 
 /**
- * Genera un archivo .docx con la cotización y lo convierte a PDF.
+ * Rellena el template Word con los datos de la cotización y lo convierte a PDF.
  * @param {Object} datos - Datos extraídos por Claude
  * @returns {{ docxPath: string, pdfPath: string }}
  */
 async function generarCotizacion(datos) {
-  // ── Cálculos ────────────────────────────────────────────────────────────────
+  // Cálculos
   const subtotal = datos.productos.reduce(
     (sum, p) => sum + p.cantidad * p.precioUnitario,
     0
@@ -154,317 +128,63 @@ async function generarCotizacion(datos) {
   const iva = subtotal * 0.16;
   const total = subtotal + iva;
 
-  // ── Widths (DXA) ────────────────────────────────────────────────────────────
-  // Márgenes: izq 720 + der 720 = 1440. Hoja Letter: 12240. Contenido: 10800
-  const TW = 10800;
-  const W_CANT = 900;
-  const W_DESC = 6600;
-  const W_PU = 1650;
-  const W_IMP = 1650;
+  // Cargar template como ZIP
+  const templateContent = fs.readFileSync(TEMPLATE_PATH, "binary");
+  const zip = new PizZip(templateContent);
+  let docXml = zip.files["word/document.xml"].asText();
 
-  // ── Filas de productos ──────────────────────────────────────────────────────
-  const filasProductos = datos.productos.map(
-    (p, i) =>
-      new TableRow({
-        children: [
-          celdaDato(String(p.cantidad), W_CANT, true),
-          celdaDato(p.descripcion, W_DESC),
-          celdaDato(formatearMoneda(p.precioUnitario), W_PU, true),
-          celdaDato(
-            formatearMoneda(p.cantidad * p.precioUnitario),
-            W_IMP,
-            true
-          ),
-        ],
-      })
+  // ── 1. Nombre del cliente ────────────────────────────────────────────────
+  docXml = docXml.replace(
+    ">A QUIEN CORRESPONDA<",
+    `>${escapeXml(datos.cliente || "A QUIEN CORRESPONDA")}<`
   );
 
-  // Rellenar hasta mínimo 5 filas vacías para estética
-  const filasExtra = Math.max(0, 5 - datos.productos.length);
-  for (let i = 0; i < filasExtra; i++) {
-    filasProductos.push(
-      new TableRow({
-        children: [
-          celdaDato("", W_CANT, true),
-          celdaDato("", W_DESC),
-          celdaDato("", W_PU, true),
-          celdaDato("", W_IMP, true),
-        ],
-      })
-    );
+  // ── 2. Localizar todas las filas de la tabla de productos ────────────────
+  const filas = [];
+  let buscarDesde = 0;
+  while (true) {
+    const inicio = docXml.indexOf("<w:tr ", buscarDesde);
+    if (inicio === -1) break;
+    const fin = docXml.indexOf("</w:tr>", inicio) + 7;
+    filas.push({ inicio, fin });
+    buscarDesde = fin;
   }
+  // Fila 0: encabezado (CANT / DESCRIPCION / P.U. / IMPORTE)
+  // Fila 1: única fila de datos vacía → la reemplazamos con los productos
+  // Filas 2-4: SUBTOTAL, IVA, TOTAL (los llenamos por paraId)
 
-  // ── Filas de totales ────────────────────────────────────────────────────────
-  const anchoEtiqueta = W_CANT + W_DESC + W_PU;
+  const filaTemplateXml = docXml.substring(filas[1].inicio, filas[1].fin);
+  const filasProductosXml = datos.productos
+    .map((p, i) => generarFilaProducto(filaTemplateXml, p, i + 1))
+    .join("");
 
-  const filaTotales = (etiqueta, valor) =>
-    new TableRow({
-      children: [
-        new TableCell({
-          borders: { top: sinBorde, bottom: sinBorde, left: sinBorde, right: sinBorde },
-          width: { size: anchoEtiqueta, type: WidthType.DXA },
-          columnSpan: 3,
-          children: [new Paragraph({ children: [] })],
-        }),
-        celdaTotal(etiqueta + "   " + formatearMoneda(valor), W_IMP, false),
-      ],
-    });
+  docXml =
+    docXml.substring(0, filas[1].inicio) +
+    filasProductosXml +
+    docXml.substring(filas[1].fin);
 
-  // ── Tabla bancaria ──────────────────────────────────────────────────────────
-  const filaBanco = (etiqueta, valor) =>
-    new TableRow({
-      children: [
-        new TableCell({
-          borders,
-          width: { size: 2500, type: WidthType.DXA },
-          shading: { fill: COLOR_ACCENT, type: ShadingType.CLEAR },
-          margins: { top: 60, bottom: 60, left: 120, right: 120 },
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({ text: etiqueta, bold: true, size: 18, font: FONT }),
-              ],
-            }),
-          ],
-        }),
-        new TableCell({
-          borders,
-          width: { size: TW - 2500, type: WidthType.DXA },
-          margins: { top: 60, bottom: 60, left: 120, right: 120 },
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({ text: valor, size: 18, font: FONT }),
-              ],
-            }),
-          ],
-        }),
-      ],
-    });
+  // ── 3. Insertar totales en celdas IMPORTE de SUBTOTAL / IVA / TOTAL ─────
+  // Los paraIds de esas celdas son fijos en el template original:
+  docXml = insertarValorEnCelda(docXml, "0F820EAE", formatearMoneda(subtotal)); // SUBTOTAL
+  docXml = insertarValorEnCelda(docXml, "59CC1687", formatearMoneda(iva));      // IVA
+  docXml = insertarValorEnCelda(docXml, "6C4CBFE8", formatearMoneda(total));    // TOTAL
 
-  // ── Documento ───────────────────────────────────────────────────────────────
-  const doc = new Document({
-    sections: [
-      {
-        properties: {
-          page: {
-            size: { width: 12240, height: 15840 },
-            margin: { top: 720, right: 720, bottom: 720, left: 720 },
-          },
-        },
-        children: [
-          // ── ENCABEZADO ───────────────────────────────────────────────────
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 0, after: 60 },
-            children: [
-              new TextRun({
-                text: "TEXTILES Y ACABADOS SAN FERNANDO S. A. DE C. V.",
-                bold: true,
-                size: 28,
-                color: COLOR_HEADER,
-                font: FONT,
-              }),
-            ],
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 0, after: 240 },
-            border: {
-              bottom: { style: BorderStyle.SINGLE, size: 6, color: COLOR_SUBHEADER, space: 4 },
-            },
-            children: [
-              new TextRun({
-                text: "COTIZACIÓN",
-                bold: true,
-                size: 36,
-                color: COLOR_SUBHEADER,
-                font: FONT,
-              }),
-            ],
-          }),
+  // ── 4. Guardar DOCX modificado ───────────────────────────────────────────
+  zip.file("word/document.xml", docXml);
+  const buffer = zip.generate({ type: "nodebuffer", compression: "DEFLATE" });
 
-          // ── FECHA Y CLIENTE ──────────────────────────────────────────────
-          new Paragraph({
-            spacing: { before: 120, after: 60 },
-            children: [
-              new TextRun({ text: "SANTIAGUITO ETLA, ", size: 20, font: FONT }),
-              new TextRun({
-                text: `a ${obtenerFechaActual()}`,
-                size: 20,
-                font: FONT,
-                bold: true,
-              }),
-            ],
-          }),
-          new Paragraph({
-            spacing: { before: 60, after: 60 },
-            children: [
-              new TextRun({ text: "AT'N: ", bold: true, size: 20, font: FONT }),
-              new TextRun({
-                text: datos.cliente || "A QUIEN CORRESPONDA",
-                bold: true,
-                size: 20,
-                font: FONT,
-                color: COLOR_SUBHEADER,
-              }),
-            ],
-          }),
-          new Paragraph({
-            spacing: { before: 60, after: 240 },
-            children: [
-              new TextRun({
-                text: "RECIBA UN CORDIAL SALUDO. POR MEDIO DE LA PRESENTE LE ENVIAMOS LA SIGUIENTE COTIZACIÓN.",
-                size: 18,
-                font: FONT,
-                italics: true,
-              }),
-            ],
-          }),
-
-          // ── TABLA DE PRODUCTOS ───────────────────────────────────────────
-          new Table({
-            width: { size: TW, type: WidthType.DXA },
-            columnWidths: [W_CANT, W_DESC, W_PU, W_IMP],
-            rows: [
-              // Encabezado
-              new TableRow({
-                tableHeader: true,
-                children: [
-                  celdaEncabezado("CANT", W_CANT),
-                  celdaEncabezado("DESCRIPCIÓN", W_DESC, false),
-                  celdaEncabezado("P.U.", W_PU),
-                  celdaEncabezado("IMPORTE", W_IMP),
-                ],
-              }),
-              // Productos + filas vacías
-              ...filasProductos,
-              // Totales
-              filaTotales("SUBTOTAL", subtotal),
-              filaTotales("IVA (16%)", iva),
-              filaTotales("TOTAL", total),
-            ],
-          }),
-
-          // ── CONDICIONES ──────────────────────────────────────────────────
-          new Paragraph({ spacing: { before: 240, after: 60 }, children: [] }),
-          new Paragraph({
-            spacing: { before: 0, after: 60 },
-            children: [
-              new TextRun({ text: "CONDICIONES DE PAGO: ", bold: true, size: 18, font: FONT }),
-              new TextRun({
-                text: datos.condicionesPago || "50% DE ANTICIPO Y 50% CONTRA ENTREGA",
-                size: 18,
-                font: FONT,
-              }),
-            ],
-          }),
-          new Paragraph({
-            spacing: { before: 0, after: 60 },
-            children: [
-              new TextRun({ text: "TIEMPO DE ENTREGA: ", bold: true, size: 18, font: FONT }),
-              new TextRun({
-                text: datos.tiempoEntrega || "15-20 DÍAS HÁBILES DESPUÉS DE CONFIRMAR TALLAS Y ANTICIPO",
-                size: 18,
-                font: FONT,
-              }),
-            ],
-          }),
-          new Paragraph({
-            spacing: { before: 0, after: 240 },
-            children: [
-              new TextRun({ text: "VIGENCIA DE COTIZACIÓN: ", bold: true, size: 18, font: FONT }),
-              new TextRun({ text: "8 DÍAS NATURALES", size: 18, font: FONT }),
-            ],
-          }),
-
-          // ── DATOS BANCARIOS ──────────────────────────────────────────────
-          new Paragraph({
-            spacing: { before: 0, after: 100 },
-            children: [
-              new TextRun({
-                text: "DATOS BANCARIOS",
-                bold: true,
-                size: 20,
-                color: COLOR_SUBHEADER,
-                font: FONT,
-              }),
-            ],
-          }),
-          new Table({
-            width: { size: TW, type: WidthType.DXA },
-            columnWidths: [2500, TW - 2500],
-            rows: [
-              filaBanco("BANCO:", "BANCO MERCANTIL DEL NORTE, S.A. (BANORTE)"),
-              filaBanco("RFC:", "TAS091009FM7"),
-              filaBanco("No. DE CUENTA:", "0637813561"),
-              filaBanco("TRANSFERENCIA:", "072610006378135618"),
-            ],
-          }),
-
-          // ── FIRMA ────────────────────────────────────────────────────────
-          new Paragraph({ spacing: { before: 480, after: 0 }, children: [] }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 0, after: 60 },
-            border: {
-              top: { style: BorderStyle.SINGLE, size: 4, color: "555555", space: 4 },
-            },
-            children: [
-              new TextRun({ text: "ATENTAMENTE", size: 18, font: FONT }),
-            ],
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 60, after: 0 },
-            children: [
-              new TextRun({ text: "ALBERTO VIVAS RIVERA", bold: true, size: 20, font: FONT }),
-            ],
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 0, after: 0 },
-            children: [
-              new TextRun({
-                text: "Textiles y Acabados San Fernando S.A. de C.V.",
-                size: 18,
-                font: FONT,
-                italics: true,
-                color: "888888",
-              }),
-            ],
-          }),
-
-          // ── NOTAS ADICIONALES (solo si hay) ─────────────────────────────
-          ...(datos.notas
-            ? [
-                new Paragraph({ spacing: { before: 240, after: 60 }, children: [] }),
-                new Paragraph({
-                  children: [
-                    new TextRun({ text: "NOTAS: ", bold: true, size: 18, font: FONT }),
-                    new TextRun({ text: datos.notas, size: 18, font: FONT, italics: true }),
-                  ],
-                }),
-              ]
-            : []),
-        ],
-      },
-    ],
-  });
-
-  // ── Guardar DOCX ────────────────────────────────────────────────────────────
   const tmpDir = os.tmpdir();
   const timestamp = Date.now();
   const docxPath = path.join(tmpDir, `cotizacion_${timestamp}.docx`);
   const pdfPath = path.join(tmpDir, `cotizacion_${timestamp}.pdf`);
 
-  const buffer = await Packer.toBuffer(doc);
   fs.writeFileSync(docxPath, buffer);
 
-  // ── Convertir a PDF con LibreOffice ─────────────────────────────────────────
-  execSync(`soffice --headless --convert-to pdf --outdir "${tmpDir}" "${docxPath}"`, {
-    timeout: 30000,
-  });
+  // ── 5. Convertir a PDF con LibreOffice ───────────────────────────────────
+  execSync(
+    `soffice --headless --convert-to pdf --outdir "${tmpDir}" "${docxPath}"`,
+    { timeout: 30000 }
+  );
 
   return { docxPath, pdfPath };
 }
