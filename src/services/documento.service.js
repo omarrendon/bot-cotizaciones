@@ -8,6 +8,22 @@ const path = require("path");
 const os = require("os");
 
 const TEMPLATE_PATH = path.join(__dirname, "../../template/machote_san_fernando.docx");
+const COUNTER_PATH  = path.join(__dirname, "../../data/counter.json");
+
+// ─── Contador de cotizaciones ─────────────────────────────────────────────────
+
+function getSiguienteCotizacionId() {
+  let data = { ultimo: 0 };
+  try {
+    data = JSON.parse(fs.readFileSync(COUNTER_PATH, "utf8"));
+  } catch (_) {
+    // primera vez: el archivo aún no existe
+  }
+  data.ultimo += 1;
+  fs.mkdirSync(path.dirname(COUNTER_PATH), { recursive: true });
+  fs.writeFileSync(COUNTER_PATH, JSON.stringify(data), "utf8");
+  return `cot-${String(data.ultimo).padStart(3, "0")}`;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -120,6 +136,9 @@ function insertarValorEnCelda(docXml, paraId, texto) {
  * @returns {{ docxPath: string, pdfPath: string }}
  */
 async function generarCotizacion(datos) {
+  // ── 0. Identificador único de cotización ──────────────────────────────────
+  const cotizacionId = getSiguienteCotizacionId();
+
   // Cálculos
   const subtotal = datos.productos.reduce(
     (sum, p) => sum + p.cantidad * p.precioUnitario,
@@ -138,6 +157,32 @@ async function generarCotizacion(datos) {
     ">A QUIEN CORRESPONDA<",
     `>${escapeXml(datos.cliente || "A QUIEN CORRESPONDA")}<`
   );
+
+  // ── 1.5. Insertar identificador único justo encima de la tabla ───────────
+  // Párrafo alineado a la derecha, sin sangría, para coincidir con el
+  // margen derecho de la tabla.
+  // indent derecho calculado para que el texto quede alineado
+  // con el borde derecho de la tabla (386 twips = margen der. página + diferencia tabla)
+  const parrafoId =
+    `<w:p>` +
+      `<w:pPr>` +
+        `<w:pStyle w:val="Sinespaciado"/>` +
+        `<w:jc w:val="right"/>` +
+        `<w:ind w:right="386"/>` +
+        `<w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="atLeast"/>` +
+        `<w:rPr><w:b/><w:bCs/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr>` +
+      `</w:pPr>` +
+      `<w:r>` +
+        `<w:rPr><w:b/><w:bCs/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr>` +
+        `<w:t>${escapeXml(cotizacionId)}</w:t>` +
+      `</w:r>` +
+    `</w:p>`;
+
+  const primeraTblIdx = docXml.indexOf("<w:tbl>");
+  docXml =
+    docXml.substring(0, primeraTblIdx) +
+    parrafoId +
+    docXml.substring(primeraTblIdx);
 
   // ── 2. Localizar todas las filas de la tabla de productos ────────────────
   const filas = [];
@@ -194,7 +239,7 @@ async function generarCotizacion(datos) {
     { timeout: 30000 }
   );
 
-  return { docxPath, pdfPath };
+  return { docxPath, pdfPath, cotizacionId };
 }
 
 module.exports = { generarCotizacion };

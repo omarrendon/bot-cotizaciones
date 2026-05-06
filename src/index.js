@@ -113,7 +113,7 @@ bot.on("photo", async (msg) => {
     );
 
     // ── Generar documentos ─────────────────────────────────────────────────
-    const { pdfPath } = await generarCotizacion(datos);
+    const { pdfPath, cotizacionId } = await generarCotizacion(datos);
 
     // ── Construir resumen de lo detectado ──────────────────────────────────
     const resumenProductos = datos.productos
@@ -144,7 +144,7 @@ bot.on("photo", async (msg) => {
 
     // ── Enviar PDF ─────────────────────────────────────────────────────────
     await bot.sendDocument(chatId, pdfPath, {
-      caption: `📄 Cotización${datos.cliente ? ` para ${datos.cliente}` : ""} - ${new Date().toLocaleDateString("es-MX")}`,
+      caption: `📄 ${cotizacionId}${datos.cliente ? ` · ${datos.cliente}` : ""} · ${new Date().toLocaleDateString("es-MX")}`,
     });
 
     // ── Limpiar archivos temporales ────────────────────────────────────────
