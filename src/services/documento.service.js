@@ -169,6 +169,14 @@ async function generarCotizacion(datos) {
   docXml = insertarValorEnCelda(docXml, "59CC1687", formatearMoneda(iva));      // IVA
   docXml = insertarValorEnCelda(docXml, "6C4CBFE8", formatearMoneda(total));    // TOTAL
 
+  // ── 3.5. Prevenir saltos de línea en celdas angostas ─────────────────────
+  // LibreOffice usa métricas de fuente distintas a Word; agregar noWrap a
+  // todas las celdas evita que la última letra caiga en línea nueva.
+  docXml = docXml.replace(/(<w:tcPr>)([\s\S]*?)(<\/w:tcPr>)/g, (match, open, content, close) => {
+    if (content.includes("<w:noWrap")) return match;
+    return open + content + "<w:noWrap/>" + close;
+  });
+
   // ── 4. Guardar DOCX modificado ───────────────────────────────────────────
   zip.file("word/document.xml", docXml);
   const buffer = zip.generate({ type: "nodebuffer", compression: "DEFLATE" });
