@@ -128,6 +128,52 @@ function insertarValorEnCelda(docXml, paraId, texto) {
   return docXml.substring(0, insertarEn) + run + docXml.substring(insertarEn);
 }
 
+// ─── Ajuste de fuentes en celdas angostas ────────────────────────────────────
+
+/**
+ * Reduce a sz=20 (10pt) las celdas que en LibreOffice rompen en la última letra:
+ * - Encabezado: CANT (celda 0) e IMPORTE (celda 3) — tenían sz=24 en el template
+ * - Totales: SUBTOTAL / IVA / TOTAL — no tenían sz explícito (heredaban grande)
+ */
+function ajustarFuentesCeldasAngostas(docXml) {
+  // ── Encabezado: celdas CANT (0) e IMPORTE (3) ──────────────────────────
+  const trStart = docXml.indexOf("<w:tr ");
+  const trEnd   = docXml.indexOf("</w:tr>", trStart) + 7;
+  let headerRow = docXml.substring(trStart, trEnd);
+
+  const celdas = [];
+  let pos = 0;
+  while (true) {
+    const s = headerRow.indexOf("<w:tc>", pos);
+    if (s === -1) break;
+    const e = headerRow.indexOf("</w:tc>", s) + 7;
+    celdas.push({ s, e });
+    pos = e;
+  }
+
+  // Reducir sz en celdas 0 (CANT) y 3 (IMPORTE); procesar al revés para no alterar posiciones
+  for (const idx of [3, 0]) {
+    const celda = headerRow.substring(celdas[idx].s, celdas[idx].e)
+      .replace(/w:sz w:val="24"/g,   'w:sz w:val="20"')
+      .replace(/w:szCs w:val="24"/g, 'w:szCs w:val="20"');
+    headerRow =
+      headerRow.substring(0, celdas[idx].s) +
+      celda +
+      headerRow.substring(celdas[idx].e);
+  }
+
+  docXml = docXml.substring(0, trStart) + headerRow + docXml.substring(trEnd);
+
+  // ── Filas de totales: agregar sz=20 al run de SUBTOTAL / IVA / TOTAL ───
+  // Patrón exacto del template: <w:bCs/></w:rPr><w:t>ETIQUETA</w:t>
+  docXml = docXml.replace(
+    /<w:bCs\/>(<\/w:rPr><w:t>(?:SUBTOTAL|IVA|TOTAL)<\/w:t>)/g,
+    '<w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/>$1'
+  );
+
+  return docXml;
+}
+
 // ─── Generador principal ──────────────────────────────────────────────────────
 
 /**
@@ -151,6 +197,9 @@ async function generarCotizacion(datos) {
   const templateContent = fs.readFileSync(TEMPLATE_PATH, "binary");
   const zip = new PizZip(templateContent);
   let docXml = zip.files["word/document.xml"].asText();
+
+  // ── 0.5. Reducir fuente en celdas angostas del template ──────────────────
+  docXml = ajustarFuentesCeldasAngostas(docXml);
 
   // ── 1. Nombre del cliente ────────────────────────────────────────────────
   docXml = docXml.replace(
