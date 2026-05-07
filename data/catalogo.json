@@ -1,0 +1,290 @@
+[
+  {
+    "id": 1,
+    "unidad": "PZA",
+    "descripcion": "CAMISOLA MANDO UNICO, MANGA LARGA, CONFECCIONADA EN TELA RIP STOP COLOR AZUL MARINO, CON BOLSAS TACTICAS AL FRENTE, CIERRE, CUELLO SPORT, CON UN LOGOTIPO BORDADO TAMAÑO GAFETE EN EL PECHO Y LA LEYENDA \"POLICIA MUNICIPAL\" BORDADA EN LA ESPALDA",
+    "costo": 690
+  },
+  {
+    "id": 2,
+    "unidad": "PZA",
+    "descripcion": "PANTALON MANDO UNICO, CONFECCIONADO EN TELA RIP STOP COLOR AZUL MARINO, CON AJUSTADORES EN LA CINTURA, JARETA EN EL TOBILLO",
+    "costo": 590
+  },
+  {
+    "id": 3,
+    "unidad": "PZA",
+    "descripcion": "CAMISOLA PREMIUM TACTICA MANGA LARGA, CONFECCIONADA EN TELA RIP STOP COLOR AZUL MARINO Y BLANCA, CON BOLSAS TACTICAS AL FRENTE, CUELLO SPORT Y VENTILACION TIPO PESCADOR CON UN LOGOTIPO BORDADO TAMAÑO GAFETE EN EL PECHO Y LA LEYENDA \"POLICIA MUNICIPAL\" BORDADA EN LA ESPALDA",
+    "costo": 819
+  },
+  {
+    "id": 4,
+    "unidad": "PZA",
+    "descripcion": "PANTALON PREMIUM CONFECCIONADO EN TELA RIP STOP COLOR AZUL MARINO, BEIGE, VERDE MILITAR, CON AJUSTADORES EN LA CINTURA, JARETA EN EL TOBILLO ANTIDESGARRE",
+    "costo": 733
+  },
+  {
+    "id": 5,
+    "unidad": "PZAS",
+    "descripcion": "PANTALON AVIADOR SF CONFECCIONADO EN TELA RIP STOP COLOR AZUL MARINO, MULTIBOLSAS CON RESORTE EN CINTURA Y CIERRE EN TOBILLO",
+    "costo": 690
+  },
+  {
+    "id": 6,
+    "unidad": "PZA",
+    "descripcion": "PLAYERA DE COMBATE TACTICA RAPIDA PORTA PARCHE MANGA LARGA DE AJUSTE RAPIDO CONFECCIONADO EN TELA RIP STOP Y NAYLON SPANDEX PARA MAYOR COMODIDAD, BOLSAS EN MANGAS CON UN LOGOTIPO BORDADO TAMAÑO GAFETE EN EL PECHO Y LA LEYENDA \"POLICIA MUNICIPAL\" BORDADA EN LA ESPALDA",
+    "costo": 650
+  },
+  {
+    "id": 7,
+    "unidad": "PZA",
+    "descripcion": "CAMISA DE SERVICIO (MOD. FEDERAL) MANGA LARGA COLOR AZUL MEDIA NOCHE O NEGRO, CONFECCIONADA EN TELA DE IMPORTACION CON UN LOGOTIPO BORDADO TAMAÑO GAFETE Y LEYENDA DE \"POLICIA MUNICIPAL\" BORDADO EN ESP.",
+    "costo": 590
+  },
+  {
+    "id": 8,
+    "unidad": "PZA",
+    "descripcion": "PLAYERA TIPO POLO MANGA CORTA CONFECCIONADA EN TELA DE PIQUET CON UN LOGOTIPO BORDADO AL FRENTE TAMAÑO GAF. Y LEYENDA DE \"POLICIA MUNICIPAL\" BORDADO EN ESP.",
+    "costo": 270
+  },
+  {
+    "id": 9,
+    "unidad": "PZA",
+    "descripcion": "PLAYERA TIPO POLO TACTICA MANGA LARGA CONFECCIONADA EN TELA PIQUET CON BOLSA EN MANGAS, CON LOGOTIPO BORDADO TAMAÑO GAFETE Y LEYENDA DE \"POLICIA MUNICIPAL\" BORDADO EN ESPALDA",
+    "costo": 490
+  },
+  {
+    "id": 10,
+    "unidad": "PZA",
+    "descripcion": "PLAYERA TIPO POLO PIQUET MANGA LARGA CONFECCIONADA EN TELA PIQUET CON LOGOTIPO BORDADO TAMAÑO GAFETE Y LEYENDA DE \"POLICIA MUNICIPAL\" BORDADO EN ESPALDA",
+    "costo": 350
+  },
+  {
+    "id": 11,
+    "unidad": "PZA",
+    "descripcion": "PLAYERA TIPO POLO POLIESTER MANGA CORTA CONFEC. EN TELA DE POLIESTER, BOLSILLOS PARA BOLIGRAFOS EN LA MANGA IZQ., BUCLES DE MICROFONO EN LOS HOMBROS CON MALLA EN LOS COSTADOS PARA VENTILACION, CON LOGOTIPO BORDADO AL FRENTE TAMAÑO GAF. Y LEYENDA DE \"POLICIA MUNICIPAL\" BORDADO EN ESP.",
+    "costo": 335
+  },
+  {
+    "id": 12,
+    "unidad": "PZA",
+    "descripcion": "PANTALON TACTICO (ECO) CONFECCIONADO EN TELA GABARDINA 65% POLIESTER 35% ALG. NEGRO Y MARINO",
+    "costo": 490
+  },
+  {
+    "id": 13,
+    "unidad": "PZA",
+    "descripcion": "PANTALON DE MEZCLILLA GRAN TORNADO Y/O WAANGLER",
+    "costo": 380
+  },
+  {
+    "id": 14,
+    "unidad": "PZA",
+    "descripcion": "PLAYERA CUELLO REDONDO O CUELLO V CON 2 IMPRESIONES (FRENTE Y ESPALDA A UNA SOLA TINTA)",
+    "costo": 130
+  },
+  {
+    "id": 15,
+    "unidad": "PZA",
+    "descripcion": "PLAYERA CUELLO REDONDO MANGA LARGA CON 2 IMPRESIONES (FRENTE Y ESPALDA A UNA SOLA TINTA)",
+    "costo": 180
+  },
+  {
+    "id": 16,
+    "unidad": "PZA",
+    "descripcion": "GORRA BEISBOLERA DE ACRILICO, CON UN LOGOTIPO BORDADO",
+    "costo": 95
+  },
+  {
+    "id": 17,
+    "unidad": "PZA",
+    "descripcion": "GORRA LICRA, CON UN LOGOTIPO BORDADO",
+    "costo": 120
+  },
+  {
+    "id": 18,
+    "unidad": "PZA",
+    "descripcion": "GORRA RIPSTOP, CON UN LOGOTIPO BORDADO",
+    "costo": 160
+  },
+  {
+    "id": 19,
+    "unidad": "PZA",
+    "descripcion": "SOMBRERO TIPO SAFARY EN TELA DE ALGODON CON LOGOTIPO BORDADO",
+    "costo": 185
+  },
+  {
+    "id": 20,
+    "unidad": "PZA",
+    "descripcion": "CHAMARRA VAQUERA, CONFECCIONADA EN TELA MEZCLILLA COLOR NEGRO, CON FORRO DE FRANELA, CON LOGOTIPO BORDADO TAMAÑO GAFETE EN EL PECHO",
+    "costo": 590
+  },
+  {
+    "id": 21,
+    "unidad": "PZA",
+    "descripcion": "CHAMARRA MODELO NUEVO (SF) CONFECCIONADA EN TELA RIP STOP, GABARDINA O TIBURON EN COLOR AZUL MARINO O NEGRO, CON FORRO TIPO POLAR, CON JARETA DE AJUSTE EN LA CINTURA. CON LOGOTIPO BORDADO TAMAÑO GAFETE EN EL PECHO Y LEYENDA \"POLICIA MUNICIPAL\" BORDADA EN LA ESPALDA",
+    "costo": 750
+  },
+  {
+    "id": 22,
+    "unidad": "PZA",
+    "descripcion": "CHAMARRA COMANDO, CONFECCIONADA EN MICRO RIPSTOP, MANGAS DESMONTABLES CON GORRO, CON LOGOTIPO BORDADO TAMAÑO GAFETE Y LEYENDA \"POLICIA MUNICIPAL\" BORDADA EN LA ESPALDA",
+    "costo": 995
+  },
+  {
+    "id": 23,
+    "unidad": "PZA",
+    "descripcion": "CHAMARRA SAHARA DELTA CONFECCIONADA EN TELA ROBBEN COLOR AZUL MARINO CON FORRO CAPITONADO CALADO, DE MANGAS DESMONTABLES, CON BOLSAS AL FRENTE CON CIERRE, RESORTE EN PUÑOS Y CINTURA, CON BORDADO TAMAÑO GAFETE EN EL PECHO Y LEYENDA BORDADA EN LA ESPALDA",
+    "costo": 650
+  },
+  {
+    "id": 24,
+    "unidad": "PZA",
+    "descripcion": "CHAMARRA TIBURON CONFECCIONADA EN TELA TIBURON COLOR AZUL MARINO O NEGRO, CON FORRO CAPITONADO, DE MANGAS DESMONTABLES, CON BOLSAS AL FRENTE Y RESORTE EN PUÑOS Y CINTURA, CON BORDADO TAMAÑO GAFETE EN EL PECHO Y LEYENDA \"POLICIA MUNICIPAL\" BORDADA EN LA ESPALDA",
+    "costo": 650
+  },
+  {
+    "id": 25,
+    "unidad": "PZA",
+    "descripcion": "CHAMARRA UCHIDA DE LONETA, CONFECCIONADA EN TELA LONETA, COLOR NEGRO O AZUL MARINO, CON CIERRE O BROCHES AL FRENTE, CUELLO SPORT, CON LOGOTIPO BORDADO TAMAÑO GAFETE EN EL PECHO",
+    "costo": 650
+  },
+  {
+    "id": 26,
+    "unidad": "PZAS",
+    "descripcion": "CHAMARRA SWAT, CONFECCIONADA EN TELA DIABLO, COLOR NEGRO O AZUL MARINO, CON TRES BOLSAS AL FRENTE CON CIERRE Y CARDIGAN EN PUÑOS, CON LOGOTIPO BORDADO TAMAÑO GAFETE Y LEYENDA \"POLICIA MUNICIPAL\" BORDADA EN LA ESPALDA",
+    "costo": 750
+  },
+  {
+    "id": 27,
+    "unidad": "PZAS",
+    "descripcion": "CHAMARRA TACTICA SHARK DE NEOPRENO, MULTI BOLSAS, REPELENTE A LIQUIDOS, CIERRE DE DOBLE PROPOSITO, GORRO OCULTO, CON LOGOTIPO BORDADO TAMAÑO GAFETE Y LEYENDA \"POLICIA MUNICIPAL\" BORDADA EN LA ESPALDA",
+    "costo": 850
+  },
+  {
+    "id": 28,
+    "unidad": "PZA",
+    "descripcion": "CHAMARRA PISTOLERA DE MICROFIBRA CON CIERRE LATERALES Y FORRO, GORRO OCULTO, CON LOGOTIPO BORDADO TAMAÑO GAFETE Y LEYENDA \"POLICIA MUNICIPAL\" BORDADA EN LA ESPALDA",
+    "costo": 950
+  },
+  {
+    "id": 29,
+    "unidad": "PZA",
+    "descripcion": "IMPERMEABLE TIPO GABARDINA CON BROCHES O MANGA (IMPERMEABLE TIPO CAPA)",
+    "costo": 270
+  },
+  {
+    "id": 30,
+    "unidad": "PAR",
+    "descripcion": "BOTA TACTICA LONA PIEL MODELO 5ONCE",
+    "costo": 850
+  },
+  {
+    "id": 31,
+    "unidad": "PAR",
+    "descripcion": "BOTA DUTTY GEAR MODELO DUT EST 5423 10\" DE ALTURA",
+    "costo": 950
+  },
+  {
+    "id": 32,
+    "unidad": "PAR",
+    "descripcion": "BOTA TACTICA MOD 600 TRS",
+    "costo": 733
+  },
+  {
+    "id": 33,
+    "unidad": "PAR",
+    "descripcion": "BOTA TACTICA PREMIUM SWAT MOD 3000",
+    "costo": 990
+  },
+  {
+    "id": 34,
+    "unidad": "PZA",
+    "descripcion": "TONFA (PR-24) DE PLASTICO",
+    "costo": 150
+  },
+  {
+    "id": 35,
+    "unidad": "PZA",
+    "descripcion": "TONFA (PR-24) DE POLICARBONATO",
+    "costo": 235
+  },
+  {
+    "id": 36,
+    "unidad": "PZA",
+    "descripcion": "LAMPARA RECARGABLE CON 5 OPCIONES (3 DE LUZ Y 2 DE ESTROBO) 5000 LUMENES DE ALTA DURABILIDAD",
+    "costo": 450
+  },
+  {
+    "id": 37,
+    "unidad": "PZA",
+    "descripcion": "LAMPARA RECARGABLE CON 5 OPCIONES (3 DE LUZ Y 2 DE ESTROBO) 3000 LUMENES",
+    "costo": 350
+  },
+  {
+    "id": 38,
+    "unidad": "PZA",
+    "descripcion": "SILBATO CON CADENA PARA TRANSITO MARCA LOS ANGELES",
+    "costo": 75
+  },
+  {
+    "id": 39,
+    "unidad": "PZA",
+    "descripcion": "CINTURON TACTICO RIGIDO",
+    "costo": 290
+  },
+  {
+    "id": 40,
+    "unidad": "PZA",
+    "descripcion": "GAS LACRIMOGENO GAUCIN CON VALVULA Y SEGURO",
+    "costo": 135
+  },
+  {
+    "id": 41,
+    "unidad": "JGO",
+    "descripcion": "ESPOSA NIQUELADA CON LLAVES MARCA FURY",
+    "costo": 590
+  },
+  {
+    "id": 42,
+    "unidad": "JGO",
+    "descripcion": "ESPOSAS DE IMPORTACION SMITH & WESSON",
+    "costo": 1100
+  },
+  {
+    "id": 43,
+    "unidad": "PZA",
+    "descripcion": "FORNITURA CLASICA COMPLETA CON 5 ACCESORIOS (PORTA LLAVES, PORTA ESPOSAS, PORTA GAS, PORTA RADIO Y PORTA TONFA)",
+    "costo": 350
+  },
+  {
+    "id": 44,
+    "unidad": "PZA",
+    "descripcion": "FORNITURA TIPO COREANA COMPLETA CON 5 ACCESORIOS (PORTA LLAVES, PORTA ESPOSAS, PORTA GAS, PORTA RADIO Y PORTA TONFA)",
+    "costo": 390
+  },
+  {
+    "id": 45,
+    "unidad": "PZA",
+    "descripcion": "CINTA PERIMETRAL DE (PRECAUCION, CUIDADO O PROHIBIDO EL PASO)",
+    "costo": 100
+  },
+  {
+    "id": 46,
+    "unidad": "PZA",
+    "descripcion": "CHALECO DE SEGURIDAD, MODELO STD, CONFECCIONADO EN TELA GABARDINA, CON REFLEJANTES DE ALTA VISIBILIDAD, CON AJUSTADORES LATERALES, UNITALLA",
+    "costo": 280
+  },
+  {
+    "id": 47,
+    "unidad": "PZA",
+    "descripcion": "BANDEROLA DE SEÑALAMIENTO",
+    "costo": 65
+  },
+  {
+    "id": 48,
+    "unidad": "PZA",
+    "descripcion": "CHALECO TACTICO CON PORTA PLACA",
+    "costo": 595
+  }
+]
