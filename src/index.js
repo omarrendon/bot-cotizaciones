@@ -7,8 +7,9 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 
-const { extraerDatosDeCotizacion } = require("./services/claude.service");
+const { extraerDatosDeCotizacion, extraerDatosDeCotizacionDeTexto } = require("./services/claude.service");
 const { generarCotizacion } = require("./services/documento.service");
+const { inicializarCatalogo } = require("./services/catalogo.service");
 
 // ─── Validación de variables de entorno ──────────────────────────────────────
 if (!process.env.TELEGRAM_BOT_TOKEN) {
@@ -23,8 +24,13 @@ if (!process.env.ANTHROPIC_API_KEY) {
 // ─── Inicializar bot ──────────────────────────────────────────────────────────
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
 
+// ─── Inicializar catálogo de productos ───────────────────────────────────────
+inicializarCatalogo().catch((err) => {
+  console.error("❌ Error al inicializar catálogo:", err.message);
+});
+
 console.log("🤖 Bot de cotizaciones iniciado correctamente");
-console.log("📱 Esperando imágenes en Telegram...\n");
+console.log("📱 Esperando mensajes en Telegram...\n");
 
 // ─── Comando /start ───────────────────────────────────────────────────────────
 bot.onText(/\/start/, (msg) => {
@@ -33,12 +39,12 @@ bot.onText(/\/start/, (msg) => {
     msg.chat.id,
     `👋 ¡Hola, ${nombre}!\n\n` +
       `Soy el bot de cotizaciones de *Textiles y Acabados San Fernando*.\n\n` +
-      `📸 *¿Cómo funciono?*\n` +
-      `1. Toma una foto de tus apuntes con la cotización (a mano o impresa)\n` +
-      `2. Envíamela aquí directamente\n` +
-      `3. En segundos te devuelvo el PDF listo para enviar al cliente\n\n` +
-      `✅ Me aseguro de leer: cliente, productos, cantidades y precios.\n\n` +
-      `¡Mándame tu primera imagen cuando quieras!`,
+      `Puedo generar cotizaciones de *dos maneras*:\n\n` +
+      `📸 *Por imagen:* Toma una foto de tus apuntes y envíamela\n\n` +
+      `✏️ *Por texto:* Escríbeme directamente el pedido, por ejemplo:\n` +
+      `_Cliente Omar Rendón, 5 chamarras swat_\n\n` +
+      `✅ Calculo subtotal, IVA (16%) y total automáticamente.\n\n` +
+      `¡Mándame tu primer pedido cuando quieras!`,
     { parse_mode: "Markdown" }
   );
 });
@@ -51,13 +57,17 @@ bot.onText(/\/ayuda/, (msg) => {
       `*Comandos disponibles:*\n` +
       `/start - Bienvenida e instrucciones\n` +
       `/ayuda - Esta pantalla de ayuda\n\n` +
-      `*Tips para mejores resultados:*\n` +
+      `*Por imagen 📸*\n` +
       `• Escribe claro y con buena iluminación 💡\n` +
-      `• Incluye: nombre del cliente, cantidad, descripción y precio de cada producto\n` +
-      `• La foto debe estar enfocada y sin sombras\n` +
-      `• Puedes mandar foto de papel, pizarrón o pantalla\n\n` +
+      `• Incluye: nombre del cliente, cantidad, descripción y precio\n` +
+      `• La foto debe estar enfocada y sin sombras\n\n` +
+      `*Por texto ✏️*\n` +
+      `• Escribe el nombre del cliente y los productos con sus cantidades\n` +
+      `• Ejemplo: _Cliente Juan Pérez, 10 polos manga corta, 3 gorras ripstop_\n` +
+      `• Los precios se toman automáticamente de la lista oficial\n\n` +
       `*¿Qué hace el bot automáticamente?*\n` +
-      `✅ Lee los datos de tu imagen\n` +
+      `✅ Lee los datos de tu imagen o texto\n` +
+      `✅ Busca los productos en la lista de precios\n` +
       `✅ Calcula subtotal, IVA (16%) y total\n` +
       `✅ Genera el PDF con el formato oficial\n` +
       `✅ Te lo envía en el mismo chat`,
@@ -206,16 +216,98 @@ bot.on("document", async (msg) => {
   });
 });
 
-// ─── Mensajes de texto sin imagen ────────────────────────────────────────────
-bot.on("text", (msg) => {
+// ─── Mensajes de texto: intenta generar cotización ───────────────────────────
+bot.on("text", async (msg) => {
   if (msg.text.startsWith("/")) return; // Ignorar comandos (ya manejados arriba)
 
-  bot.sendMessage(
-    msg.chat.id,
-    "📸 Para generar una cotización, envíame una *foto* con los datos escritos.\n\n" +
-      "Usa /ayuda para ver instrucciones completas.",
-    { parse_mode: "Markdown" }
-  );
+  const chatId = msg.chat.id;
+  let mensajeEstado = null;
+
+  try {
+    mensajeEstado = await bot.sendMessage(
+      chatId,
+      "✏️ Procesando tu solicitud...\n_Buscando productos en el catálogo._",
+      { parse_mode: "Markdown" }
+    );
+
+    const datos = await extraerDatosDeCotizacionDeTexto(msg.text);
+
+    await bot.editMessageText(
+      "📄 Generando el PDF de la cotización...",
+      { chat_id: chatId, message_id: mensajeEstado.message_id }
+    );
+
+    const { pdfPath, cotizacionId } = await generarCotizacion(datos);
+
+    const resumenProductos = datos.productos
+      .map(
+        (p) =>
+          `• ${p.cantidad}x ${p.descripcion} @ $${Number(p.precioUnitario).toLocaleString("es-MX")}`
+      )
+      .join("\n");
+
+    const subtotal = datos.productos.reduce(
+      (s, p) => s + p.cantidad * p.precioUnitario,
+      0
+    );
+    const iva = subtotal * 0.16;
+    const total = subtotal + iva;
+
+    const resumenTexto =
+      `✅ *Cotización generada exitosamente*\n\n` +
+      `👤 *Cliente:* ${datos.cliente || "No especificado"}\n\n` +
+      `📦 *Productos:*\n${resumenProductos}\n\n` +
+      `💰 *Subtotal:* $${subtotal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}\n` +
+      `💰 *IVA (16%):* $${iva.toLocaleString("es-MX", { minimumFractionDigits: 2 })}\n` +
+      `💰 *Total:* $${total.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
+
+    await bot.deleteMessage(chatId, mensajeEstado.message_id);
+    await bot.sendMessage(chatId, resumenTexto, { parse_mode: "Markdown" });
+
+    await bot.sendDocument(chatId, pdfPath, {
+      caption: `📄 ${cotizacionId}${datos.cliente ? ` · ${datos.cliente}` : ""} · ${new Date().toLocaleDateString("es-MX")}`,
+    });
+
+    fs.unlinkSync(pdfPath);
+    const docxPath = pdfPath.replace(".pdf", ".docx");
+    if (fs.existsSync(docxPath)) fs.unlinkSync(docxPath);
+
+    console.log(`✅ Cotización por texto generada para chat ${chatId} - ${datos.cliente || "Sin cliente"}`);
+  } catch (error) {
+    if (mensajeEstado) {
+      try {
+        await bot.deleteMessage(chatId, mensajeEstado.message_id);
+      } catch (_) {}
+    }
+
+    if (error.message === "no_es_cotizacion") {
+      await bot.sendMessage(
+        chatId,
+        "✏️ Puedes escribirme el pedido directamente, por ejemplo:\n\n" +
+          "_Cliente Omar Rendón, 5 chamarras swat_\n\n" +
+          "También puedes enviarme una 📸 *foto* con los datos escritos.\n\n" +
+          "Usa /ayuda para más instrucciones.",
+        { parse_mode: "Markdown" }
+      );
+      return;
+    }
+
+    console.error("❌ Error procesando texto:", error.message);
+
+    let mensajeError = "❌ Ocurrió un error al procesar tu solicitud.\n\n";
+    if (
+      error.message.includes("No se pudieron identificar productos") ||
+      error.message.includes("No se encontraron productos")
+    ) {
+      mensajeError += error.message;
+    } else {
+      mensajeError +=
+        "Asegúrate de incluir el nombre del cliente y al menos un producto con cantidad.\n\n" +
+        "Ejemplo: _Cliente Juan Pérez, 10 polos manga corta_";
+    }
+
+    await bot.sendMessage(chatId, mensajeError, { parse_mode: "Markdown" });
+  }
 });
 
 // ─── Manejo de errores globales del bot ──────────────────────────────────────

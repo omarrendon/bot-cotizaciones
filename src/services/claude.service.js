@@ -87,4 +87,81 @@ REGLAS IMPORTANTES:
   return datos;
 }
 
-module.exports = { extraerDatosDeCotizacion };
+/**
+ * Extrae datos de cotización desde un mensaje de texto libre usando el catálogo de precios.
+ * Usa Claude para hacer fuzzy matching entre el texto informal del usuario y los productos del catálogo.
+ * @param {string} mensaje - Mensaje de texto del usuario (ej: "Cliente Omar, 5 chamarras swat")
+ * @returns {Object} Datos estructurados de la cotización con precios del catálogo
+ */
+async function extraerDatosDeCotizacionDeTexto(mensaje) {
+  const { getCatalogoComoTexto } = require("./catalogo.service");
+  const catalogoTexto = getCatalogoComoTexto();
+
+  const hoy = new Date().toLocaleDateString("es-MX", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  const prompt = `Eres un asistente de cotizaciones para una empresa de uniformes y equipamiento policial.
+
+CATÁLOGO OFICIAL DE PRODUCTOS:
+${catalogoTexto}
+
+SOLICITUD DEL USUARIO:
+${mensaje}
+
+Tu tarea:
+1. Extrae el nombre del cliente del mensaje (puede venir como "Cliente X", "Para X", o simplemente al inicio)
+2. Identifica los productos solicitados y sus cantidades
+3. Para cada producto, encuentra el que mejor coincida en el catálogo aunque el usuario use nombres informales, abreviados o coloquiales
+4. Usa la descripción completa del catálogo y el precio oficial del catálogo
+
+Devuelve ÚNICAMENTE un objeto JSON válido, sin markdown, sin explicaciones:
+{
+  "cliente": "nombre del cliente",
+  "fecha": "${hoy}",
+  "productos": [
+    {
+      "cantidad": número entero,
+      "descripcion": "descripción completa exacta del catálogo",
+      "precioUnitario": número decimal
+    }
+  ],
+  "condicionesPago": "",
+  "tiempoEntrega": "",
+  "notas": ""
+}
+
+Si el mensaje NO parece una solicitud de cotización (es un saludo, pregunta genérica, etc.), devuelve exactamente: {"error": "no_es_cotizacion"}`;
+
+  const response = await client.messages.create({
+    model: "claude-opus-4-5",
+    max_tokens: 2048,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const rawText = response.content[0].text.trim();
+  const cleanText = rawText.replace(/```json|```/g, "").trim();
+  const datos = JSON.parse(cleanText);
+
+  if (datos.error === "no_es_cotizacion") {
+    throw new Error("no_es_cotizacion");
+  }
+
+  if (!datos.productos || !Array.isArray(datos.productos)) {
+    throw new Error(
+      "No se pudieron identificar productos en el mensaje."
+    );
+  }
+
+  if (datos.productos.length === 0) {
+    throw new Error(
+      "No se encontraron productos en el mensaje. Verifica que hayas incluido al menos un producto."
+    );
+  }
+
+  return datos;
+}
+
+module.exports = { extraerDatosDeCotizacion, extraerDatosDeCotizacionDeTexto };
