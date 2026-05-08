@@ -48,6 +48,22 @@ function makeParaId(rowIdx, pos) {
   return ((rowIdx * 100 + pos + 0x10000) >>> 0).toString(16).padStart(8, "0").toUpperCase();
 }
 
+// ─── Tamaño de fuente adaptativo para celdas angostas ────────────────────────
+
+/**
+ * Devuelve el sz Word (en medios-puntos) adecuado para que el importe
+ * no rompa en línea nueva dentro de la celda angosta IMPORTE.
+ *   ≤ 9 chars  → 20 (10 pt)  p.ej. $9,999.99
+ *  10-11 chars → 18  (9 pt)  p.ej. $10,000.00 – $99,999.99
+ *  ≥ 12 chars  → 16  (8 pt)  p.ej. $1,000,000.00+
+ */
+function fontSizeParaImporte(texto) {
+  const len = texto.length;
+  if (len >= 12) return 16;
+  if (len >= 10) return 18;
+  return 20;
+}
+
 // ─── Generación de fila de producto ──────────────────────────────────────────
 
 /**
@@ -94,7 +110,8 @@ function generarFilaProducto(templateRowXml, producto, rowIdx) {
     const idxPprEnd = celdaXml.lastIndexOf("</w:pPr>");
     if (idxPprEnd !== -1) {
       const insertarEn = idxPprEnd + "</w:pPr>".length;
-      const run = `<w:r><w:rPr><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">${textos[i]}</w:t></w:r>`;
+      const sz = (i === 3) ? fontSizeParaImporte(textos[i]) : 20;
+      const run = `<w:r><w:rPr><w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr><w:t xml:space="preserve">${textos[i]}</w:t></w:r>`;
       const nuevaCelda = celdaXml.substring(0, insertarEn) + run + celdaXml.substring(insertarEn);
       resultado =
         resultado.substring(0, celdas[i].inicio) +
@@ -123,7 +140,8 @@ function insertarValorEnCelda(docXml, paraId, texto) {
   if (pprEnd === -1 || pprEnd > pEnd) return docXml;
 
   const insertarEn = pprEnd + "</w:pPr>".length;
-  const run = `<w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">${escapeXml(texto)}</w:t></w:r>`;
+  const sz = fontSizeParaImporte(texto);
+  const run = `<w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr><w:t xml:space="preserve">${escapeXml(texto)}</w:t></w:r>`;
 
   return docXml.substring(0, insertarEn) + run + docXml.substring(insertarEn);
 }
