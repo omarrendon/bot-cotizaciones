@@ -115,7 +115,10 @@ Tu tarea:
 1. Extrae el nombre del cliente del mensaje (puede venir como "Cliente X", "Para X", o simplemente al inicio)
 2. Identifica los productos solicitados y sus cantidades
 3. Para cada producto, encuentra el que mejor coincida en el catálogo aunque el usuario use nombres informales, abreviados o coloquiales
-4. Usa la descripción completa del catálogo y el precio oficial del catálogo
+4. Usa la descripción completa del catálogo
+5. Para el precio, sigue estas reglas:
+   - Si el usuario NO indica precio: usa el precio oficial del catálogo como "precioUnitario"
+   - Si el usuario indica precio NETO (usando palabras como "neto", "precio neto", "en $X neto"): ese precio ya incluye IVA. Calcula "precioUnitario" dividiendo el precio neto entre 1.16 (redondeado a 2 decimales) e incluye el campo "precioNetoPorUnidad" con el precio neto exacto que indicó el usuario. Ejemplo: "5 playeras en $116 neto" → precioUnitario: 100, precioNetoPorUnidad: 116
 
 Devuelve ÚNICAMENTE un objeto JSON válido, sin markdown, sin explicaciones:
 {
@@ -125,7 +128,8 @@ Devuelve ÚNICAMENTE un objeto JSON válido, sin markdown, sin explicaciones:
     {
       "cantidad": número entero,
       "descripcion": "descripción completa exacta del catálogo",
-      "precioUnitario": número decimal
+      "precioUnitario": número decimal (precio base sin IVA),
+      "precioNetoPorUnidad": número decimal o null (solo cuando el usuario especificó precio neto)
     }
   ],
   "condicionesPago": "",

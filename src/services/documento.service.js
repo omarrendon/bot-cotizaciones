@@ -95,10 +95,19 @@ function generarFilaProducto(templateRowXml, producto, rowIdx) {
 
   if (celdas.length !== 4) return templateRowXml; // seguridad
 
+  // Construir descripción: si el producto tiene precio neto, agregar desglose por unidad
+  let descripcion = producto.descripcion;
+  if (producto.precioNetoPorUnidad) {
+    const base = producto.precioUnitario;
+    const ivaUnit = producto.precioNetoPorUnidad - base;
+    descripcion +=
+      `, ${formatearMoneda(base)}, IVA: ${formatearMoneda(ivaUnit)}, TOTAL NETO: ${formatearMoneda(producto.precioNetoPorUnidad)}`;
+  }
+
   // Textos para cada celda
   const textos = [
     escapeXml(String(producto.cantidad)),
-    escapeXml(producto.descripcion),
+    escapeXml(descripcion),
     escapeXml(formatearMoneda(producto.precioUnitario)),
     escapeXml(formatearMoneda(producto.cantidad * producto.precioUnitario)),
   ];
