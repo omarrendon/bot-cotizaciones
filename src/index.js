@@ -10,6 +10,7 @@ const path = require("path");
 const { extraerDatosDeCotizacion, extraerDatosDeCotizacionDeTexto } = require("./services/claude.service");
 const { generarCotizacion } = require("./services/documento.service");
 const { inicializarCatalogo } = require("./services/catalogo.service");
+const { subirArchivo, registrarCotizacion } = require("./services/notion.service");
 
 // ─── Validación de variables de entorno ──────────────────────────────────────
 if (!process.env.TELEGRAM_BOT_TOKEN) {
@@ -125,6 +126,17 @@ bot.on("photo", async (msg) => {
     // ── Generar documentos ─────────────────────────────────────────────────
     const { pdfPath, cotizacionId } = await generarCotizacion(datos);
 
+    // ── Guardar en Notion (no bloquea si falla) ────────────────────────────
+    if (process.env.NOTION_COTIZACIONES_DATABASE_ID) {
+      try {
+        const uploadId = await subirArchivo(pdfPath);
+        await registrarCotizacion(datos, cotizacionId, uploadId);
+        console.log(`📋 Cotización ${cotizacionId} registrada en Notion`);
+      } catch (notionErr) {
+        console.error(`⚠️  Notion (imagen): ${notionErr.message}`);
+      }
+    }
+
     // ── Construir resumen de lo detectado ──────────────────────────────────
     const resumenProductos = datos.productos
       .map(
@@ -238,6 +250,17 @@ bot.on("text", async (msg) => {
     );
 
     const { pdfPath, cotizacionId } = await generarCotizacion(datos);
+
+    // ── Guardar en Notion (no bloquea si falla) ────────────────────────────
+    if (process.env.NOTION_COTIZACIONES_DATABASE_ID) {
+      try {
+        const uploadId = await subirArchivo(pdfPath);
+        await registrarCotizacion(datos, cotizacionId, uploadId);
+        console.log(`📋 Cotización ${cotizacionId} registrada en Notion`);
+      } catch (notionErr) {
+        console.error(`⚠️  Notion (texto): ${notionErr.message}`);
+      }
+    }
 
     const resumenProductos = datos.productos
       .map(
