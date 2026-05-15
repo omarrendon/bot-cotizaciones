@@ -4,6 +4,7 @@ const axios = require("axios");
 const path = require("path");
 
 const { extraerDatosDeNotaPago } = require("./services/notaPago.claude.service");
+const { registrarNota } = require("./services/notion.service");
 
 if (!process.env.TELEGRAM_NOTAS_TOKEN) {
   console.error("❌ Falta TELEGRAM_NOTAS_TOKEN en el archivo .env");
@@ -91,20 +92,27 @@ async function procesarImagenNota(msg) {
     console.log(JSON.stringify(datos, null, 2));
     console.log("─────────────────────────────────────────");
 
+    await bot.editMessageText(
+      "💾 Guardando en Notion...",
+      { chat_id: chatId, message_id: mensajeEstado.message_id }
+    );
+
+    const notionUrl = await registrarNota(datos);
+
     await bot.deleteMessage(chatId, mensajeEstado.message_id);
     await bot.sendMessage(
       chatId,
-      `✅ *Datos extraídos correctamente*\n\n` +
+      `✅ *Nota registrada en Notion*\n\n` +
         `📋 *Folio:* ${datos.folio || "N/A"}\n` +
         `📅 *Fecha:* ${datos.fecha}\n` +
         `👤 *Cliente:* ${datos.cliente || "No especificado"}\n` +
         `💰 *Total:* $${Number(datos.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}\n\n` +
-        `_Los datos se muestran en consola. Notion se conectará próximamente._`,
-      { parse_mode: "Markdown" }
+        `🔗 [Ver en Notion](${notionUrl})`,
+      { parse_mode: "Markdown", disable_web_page_preview: true }
     );
 
     console.log(
-      `✅ Nota ${datos.folio || "S/N"} procesada — Cliente: ${datos.cliente || "Sin cliente"} — Total: $${datos.total}`
+      `✅ Nota ${datos.folio || "S/N"} guardada en Notion — Cliente: ${datos.cliente || "Sin cliente"} — Total: $${datos.total}\n   ${notionUrl}`
     );
   } catch (error) {
     console.error("❌ Error procesando nota:", error.message);

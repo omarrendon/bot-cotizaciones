@@ -57,13 +57,13 @@ async function registrarNota(datos) {
       Debe: {
         number: datos.debe || 0,
       },
-      "Importe con Letra": {
+      "Importe con letra": {
         rich_text: [{ text: { content: datos.importe_con_letra || "" } }],
       },
-      "Status de Pago": {
-        select: { name: "Pendiente" },
+      "Estado de pago": {
+        status: { name: "Pendiente" },
       },
-      "Fecha de Registro": {
+      "Fecha de registro": {
         date: { start: new Date().toISOString().split("T")[0] },
       },
     },
