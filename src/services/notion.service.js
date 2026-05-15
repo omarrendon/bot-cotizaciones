@@ -80,8 +80,8 @@ async function registrarNota(datos) {
           table_width: 4,
           has_column_header: true,
           has_row_header: false,
+          children: [headerRow, ...productRows],
         },
-        children: [headerRow, ...productRows],
       },
     ],
   });
