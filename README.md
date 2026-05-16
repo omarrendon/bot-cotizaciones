@@ -1,81 +1,117 @@
-# 🤖 Bot de Cotizaciones - Textiles San Fernando
+# Bot de Cotizaciones — Textiles y Acabados San Fernando
 
-Bot de Telegram que lee imágenes de cotizaciones escritas a mano y genera automáticamente un PDF con el formato oficial.
-
-## ¿Cómo funciona?
-
-1. El usuario manda una foto con la cotización escrita a mano
-2. Claude Vision extrae los datos (cliente, productos, cantidades, precios)
-3. Se genera el PDF con el formato de la empresa
-4. El bot devuelve el PDF en el mismo chat
+Bot de Telegram que automatiza la generación de cotizaciones y notas de pago para una empresa de uniformes y equipamiento policial. Convierte fotos escritas a mano o texto informal en PDFs oficiales, calcula IVA automáticamente y registra todo en Notion.
 
 ---
 
-## Instalación
+## Funcionalidades
 
-### 1. Clonar el proyecto
+### Bot de Cotizaciones
+
+- Procesa **fotos** de cotizaciones escritas a mano (Claude Vision extrae los datos)
+- Procesa **texto** informal con fuzzy matching contra el catálogo de productos
+- Soporta **precios netos** (desagrega IVA automáticamente)
+- Genera **PDF** con el formato oficial de la empresa
+- Sube el PDF y registra la cotización en **Notion**
+- Asigna **IDs secuenciales** (`cot-001`, `cot-002`, ...)
+
+### Bot de Notas de Pago
+
+- Procesa fotos de notas de pago escritas a mano
+- Extrae: folio, fecha, cliente, dirección, productos, anticipo, debe, total
+- Registra automáticamente en **Notion** y devuelve el link a la página
+
+---
+
+## Stack
+
+| Capa | Tecnología |
+|------|-----------|
+| Runtime | Node.js |
+| Bots | node-telegram-bot-api |
+| AI / Vision | Anthropic SDK — Claude Opus 4.5 |
+| Base de datos | Notion API |
+| Documentos | pizzip + XML (edición directa de DOCX) |
+| PDF | LibreOffice headless |
+| PDF parsing | pdf-parse |
+| Deploy | Railway |
+
+---
+
+## Instalación local
+
+### 1. Clonar e instalar dependencias
 
 ```bash
 git clone <tu-repo>
 cd cotizador-bot
-```
-
-### 2. Instalar dependencias
-
-```bash
 npm install
 ```
 
-### 3. Instalar LibreOffice (necesario para convertir a PDF)
+### 2. Instalar LibreOffice
+
+Necesario para convertir DOCX a PDF.
 
 **macOS:**
-
 ```bash
 brew install --cask libreoffice
 ```
 
-**Ubuntu/Debian (Railway ya lo tiene):**
-
+**Ubuntu/Debian:**
 ```bash
-sudo apt-get install -y libreoffice
+sudo apt-get install -y libreoffice default-jre
 ```
 
-### 4. Configurar variables de entorno
+Verifica que `soffice` esté en el PATH:
+```bash
+soffice --version
+```
+
+### 3. Configurar variables de entorno
 
 ```bash
 cp .env.example .env
 ```
 
-Edita `.env` y agrega:
-
-- `TELEGRAM_BOT_TOKEN` → lo obtienes hablando con @BotFather en Telegram
-- `ANTHROPIC_API_KEY` → lo obtienes en https://console.anthropic.com
-
-### 5. Crear tu bot en Telegram
-
-1. Abre Telegram y busca **@BotFather**
-2. Escribe `/newbot`
-3. Ponle un nombre (ej: `Cotizaciones San Fernando`)
-4. Ponle un username (ej: `sanfernando_cotizaciones_bot`)
-5. Copia el token que te da y ponlo en `.env`
-
-### 6. Iniciar el bot
+Edita `.env` con los valores reales:
 
 ```bash
-npm start
+TELEGRAM_BOT_TOKEN=          # Bot de cotizaciones (@BotFather)
+TELEGRAM_NOTAS_TOKEN=        # Bot de notas de pago (@BotFather)
+ANTHROPIC_API_KEY=           # console.anthropic.com
+NOTION_TOKEN=                # Notion integration secret
+NOTION_DATABASE_ID=          # ID de la database de notas de pago
+NOTION_COTIZACIONES_DATABASE_ID=  # ID de la database de cotizaciones
+```
+
+### 4. Iniciar
+
+```bash
+npm start        # Ambos bots en producción
+npm run dev      # Desarrollo con hot reload (nodemon)
 ```
 
 ---
 
-## Deploy en Railway
+## Scripts disponibles
 
-1. Sube el proyecto a GitHub
-2. Ve a [railway.app](https://railway.app) y conecta tu repo
-3. En **Variables**, agrega `TELEGRAM_BOT_TOKEN` y `ANTHROPIC_API_KEY`
-4. Railway detecta Node.js automáticamente y hace el deploy
+| Script | Descripción |
+|--------|-------------|
+| `npm start` | Ambos bots simultáneos |
+| `npm run dev` | Desarrollo con nodemon |
+| `npm run start:cotizador` | Solo bot de cotizaciones |
+| `npm run start:notas` | Solo bot de notas de pago |
 
-> ⚠️ Railway necesita LibreOffice para convertir a PDF. Agrega esta variable:
-> `NIXPACKS_APT_PKGS=libreoffice`
+---
+
+## Comandos del bot
+
+| Comando | Descripción |
+|---------|-------------|
+| `/start` | Bienvenida e instrucciones |
+| `/ayuda` | Guía de uso y tips para mejores fotos |
+| Foto | Genera cotización desde imagen |
+| Texto | Genera cotización por descripción |
 
 ---
 
@@ -84,24 +120,65 @@ npm start
 ```
 cotizador-bot/
 ├── src/
-│   ├── index.js                    # Bot principal de Telegram
+│   ├── server.js                    # Punto de entrada: ambos bots simultáneos
+│   ├── index.js                     # Bot de cotizaciones
+│   ├── notas-pago.bot.js            # Bot de notas de pago
 │   └── services/
-│       ├── claude.service.js       # Extracción de datos con Claude Vision
-│       └── documento.service.js    # Generación del DOCX y PDF
+│       ├── claude.service.js        # Vision + texto → JSON con Claude
+│       ├── documento.service.js     # Rellena DOCX + convierte a PDF
+│       ├── catalogo.service.js      # Carga y cache de lista de precios
+│       ├── notion.service.js        # Escribe en Notion y sube PDFs
+│       └── notaPago.claude.service.js  # Extracción de notas de pago
+├── data/
+│   ├── Lista de precios.pdf         # Fuente del catálogo de productos
+│   ├── catalogo.json                # Cache generado desde el PDF
+│   └── counter.json                 # Contador de cotizaciones
 ├── template/
-│   └── machote_san_fernando.docx   # Plantilla original (referencia)
+│   └── machote_san_fernando.docx   # Plantilla oficial de cotización
 ├── .env.example
-├── .gitignore
-├── package.json
-└── README.md
+├── nixpacks.toml                    # Config Railway (LibreOffice + Java)
+└── package.json
 ```
 
 ---
 
-## Comandos del bot
+## Deploy en Railway
 
-| Comando  | Descripción                           |
-| -------- | ------------------------------------- |
-| `/start` | Bienvenida e instrucciones            |
-| `/ayuda` | Guía de uso y tips para mejores fotos |
-| 📸 Foto  | Procesa la imagen y devuelve el PDF   |
+1. Sube el proyecto a GitHub
+2. En [railway.app](https://railway.app), conecta el repositorio
+3. Agrega todas las variables de entorno del `.env.example`
+4. Railway usa `nixpacks.toml` para instalar LibreOffice automáticamente
+5. El comando de inicio es `node src/server.js`
+
+> LibreOffice y Java ya están declarados en `nixpacks.toml` — no se necesita configuración adicional.
+
+---
+
+## Notion — Modelo de datos
+
+### Database de Cotizaciones
+
+| Propiedad | Tipo |
+|-----------|------|
+| Nombre (título) | Título |
+| ID Cotización | Text |
+| Cliente | Text |
+| Fecha | Date |
+| Subtotal | Number |
+| IVA | Number |
+| Total | Number |
+| Condiciones de Pago | Text |
+| Tiempo de Entrega | Text |
+| PDF | Files |
+
+### Database de Notas de Pago
+
+| Propiedad | Tipo |
+|-----------|------|
+| Folio (título) | Título |
+| Fecha | Date |
+| Cliente | Text |
+| Dirección | Text |
+| Total | Number |
+| Anticipo | Number |
+| Debe | Number |
