@@ -61,7 +61,7 @@ async function registrarNota(datos) {
         rich_text: [{ text: { content: datos.importe_con_letra || "" } }],
       },
       "Estado de pago": {
-        status: { name: "Pendiente" },
+        status: { name: datos.pagado ? "Pagado" : "Pendiente" },
       },
       "Fecha de registro": {
         date: { start: new Date().toISOString().split("T")[0] },

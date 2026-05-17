@@ -38,7 +38,8 @@ Analiza la imagen y extrae TODOS los datos visibles. Devuelve ÚNICAMENTE un obj
   "importe_con_letra": "el total escrito en palabras, vacío si no aparece",
   "anticipo": número decimal o 0 si no hay,
   "debe": número decimal o 0 si no hay,
-  "total": número decimal
+  "total": número decimal,
+  "pagado": booleano (true si hay un sello con la leyenda "PAGADO" visible en la imagen, false si no)
 }
 
 REGLAS:
