@@ -102,10 +102,11 @@ async function subirArchivo(pdfPath) {
     content_type: "application/pdf",
   });
 
-  // Paso 2: subir el archivo binario
+  // Paso 2: subir el archivo binario (FormData requiere Blob, no Buffer)
+  const blob = new Blob([fileBuffer], { type: "application/pdf" });
   await notion.fileUploads.send({
     file_upload_id: upload.id,
-    file: { data: fileBuffer, filename },
+    file: { data: blob, filename },
     part_number: 1,
   });
 
