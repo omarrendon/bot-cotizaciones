@@ -4,6 +4,14 @@ const path = require("path");
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
+function toISODate(fecha) {
+  if (!fecha) return new Date().toISOString().split("T")[0];
+  // DD/MM/YYYY → YYYY-MM-DD
+  const ddmmyyyy = fecha.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2].padStart(2, "0")}-${ddmmyyyy[1].padStart(2, "0")}`;
+  return fecha;
+}
+
 // ─── Notas de pago ────────────────────────────────────────────────────────────
 
 async function registrarNota(datos) {
@@ -168,7 +176,7 @@ async function registrarCotizacion(datos, cotizacionId, pdfUploadId) {
         title: [{ text: { content: cotizacionId } }],
       },
       Fecha: {
-        date: { start: datos.fecha || new Date().toISOString().split("T")[0] },
+        date: { start: toISODate(datos.fecha) },
       },
       Cliente: {
         rich_text: [{ text: { content: datos.cliente || "" } }],
@@ -205,8 +213,8 @@ async function registrarCotizacion(datos, cotizacionId, pdfUploadId) {
           table_width: 4,
           has_column_header: true,
           has_row_header: false,
+          children: [headerRow, ...productRows],
         },
-        children: [headerRow, ...productRows],
       },
       {
         type: "heading_3",
@@ -224,6 +232,7 @@ async function registrarCotizacion(datos, cotizacionId, pdfUploadId) {
     ],
   });
 
+  console.log(`✅ Cotización ${cotizacionId} subida a Notion: ${page.url}`);
   return page.url;
 }
 
