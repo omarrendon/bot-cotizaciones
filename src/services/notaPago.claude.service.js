@@ -39,7 +39,7 @@ Analiza la imagen y extrae TODOS los datos visibles. Devuelve ÚNICAMENTE un obj
   "anticipo": número decimal o 0 si no hay,
   "debe": número decimal o 0 si no hay,
   "total": número decimal,
-  "pagado": booleano (true si hay un sello con la leyenda "PAGADO" visible en la imagen, false si no)
+  "estado_pago": "uno de: 'Pagado', 'Cancelada', 'Pendiente'"
 }
 
 REGLAS:
@@ -47,6 +47,7 @@ REGLAS:
 - Si un número tiene comas como separador de miles (ej: 12,005), conviértelo a número (12005)
 - La fecha debe estar en formato YYYY-MM-DD; si el año es de 2 dígitos (ej: 26), interpreta como 20XX (2026)
 - folio debe ser string
+- Para estado_pago: si hay un sello o texto diagonal que diga "PAGADO" → "Pagado"; si dice "CANCELADA" o "CANCELADO" → "Cancelada"; si no hay ningún sello → "Pendiente"
 - Devuelve SOLO el JSON, sin ningún texto antes o después`;
 
   const response = await client.messages.create({

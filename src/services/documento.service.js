@@ -96,7 +96,7 @@ function generarFilaProducto(templateRowXml, producto, rowIdx) {
   if (celdas.length !== 4) return templateRowXml; // seguridad
 
   // Construir descripción: si el producto tiene precio neto, agregar desglose por unidad
-  let descripcion = producto.descripcion;
+  let descripcion = producto.descripcion.toUpperCase();
   if (producto.precioNetoPorUnidad) {
     const base = producto.precioUnitario;
     const ivaUnit = producto.precioNetoPorUnidad - base;
@@ -303,9 +303,22 @@ async function generarCotizacion(datos) {
   const buffer = zip.generate({ type: "nodebuffer", compression: "DEFLATE" });
 
   const tmpDir = os.tmpdir();
-  const timestamp = Date.now();
-  const docxPath = path.join(tmpDir, `cotizacion_${timestamp}.docx`);
-  const pdfPath = path.join(tmpDir, `cotizacion_${timestamp}.pdf`);
+
+  const clienteSlug = (datos.cliente || "CLIENTE")
+    .toUpperCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+
+  const fechaRaw = datos.fecha || new Date().toISOString().split("T")[0];
+  const [y, m, d] = fechaRaw.includes("/")
+    ? fechaRaw.split("/").reverse()
+    : fechaRaw.split("-");
+  const fechaSlug = `${d}-${m}-${y}`;
+
+  const baseName = `COTIZACION_${clienteSlug}_${fechaSlug}`;
+  const docxPath = path.join(tmpDir, `${baseName}.docx`);
+  const pdfPath = path.join(tmpDir, `${baseName}.pdf`);
 
   fs.writeFileSync(docxPath, buffer);
 
