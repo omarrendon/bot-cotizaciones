@@ -122,7 +122,13 @@ async function generatePagePdf(page, canvasConfig, cmykConfig) {
         const textWidth   = helveticaBold.widthOfTextAtSize(tallaText, fontSizePts);
         const centerX     = xPts + elWidthPts / 2;
         const textX       = centerX - textWidth / 2;
-        const textY       = pdfYBottom + (11 / pixelsPerCm * CM_TO_POINTS);
+        // Para rotation=180° el elemento está invertido: la zona de las aberturas de las
+        // piernas queda en la parte SUPERIOR del bounding box (igual que en rotation=0°).
+        // En PDF coords (y hacia arriba), eso equivale a pdfYBottom + elHeightPts - offset.
+        const offset = 11 / pixelsPerCm * CM_TO_POINTS;
+        const textY = rotation === 180
+          ? pdfYBottom + elHeightPts - fontSizePts - offset
+          : pdfYBottom + offset;
 
         pdfPage.drawRectangle({
           x: textX - 2, y: textY - 2,
