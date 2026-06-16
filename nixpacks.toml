@@ -1,5 +1,5 @@
 [phases.setup]
-aptPkgs = ["libreoffice", "libreoffice-writer", "default-jre"]
+aptPkgs = ["libreoffice", "libreoffice-writer", "default-jre", "libvips-dev"]
 
 [start]
 cmd = "node src/server.js"

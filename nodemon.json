@@ -1,0 +1,5 @@
+{
+  "watch": ["src", "pdf"],
+  "ext": "js,json",
+  "ignore": ["node_modules", "data", "template", "tmp"]
+}
