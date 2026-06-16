@@ -1,8 +1,6 @@
 [phases.setup]
 aptPkgs = ["libreoffice", "libreoffice-writer", "default-jre", "libvips-dev"]
 
-[phases.install]
-cmds = ["npm install", "npm rebuild sharp"]
 
 [start]
 cmd = "node src/server.js"
