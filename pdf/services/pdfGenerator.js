@@ -83,8 +83,17 @@ async function generatePagePdf(page, canvasConfig, cmykConfig) {
             .png()
             .toBuffer();
         } else {
-          pngBuffer = Buffer.from(el.imageDataUrl.split(',')[1], 'base64');
-          console.log(`[pdfGenerator]     PNG decodificado: ${(pngBuffer.length / 1024).toFixed(0)}KB`);
+          // El cliente envía el PNG a 1× (dimensiones del canvas).
+          // Escalar a 2× con Sharp para calidad de impresión antes del CMYK.
+          const rawBuffer = Buffer.from(el.imageDataUrl.split(',')[1], 'base64');
+          const meta = await sharp(rawBuffer).metadata();
+          const targetW = Math.min(Math.round((meta.width  || 1) * 2), SHARP_MAX_PX);
+          const targetH = Math.min(Math.round((meta.height || 1) * 2), SHARP_MAX_PX);
+          pngBuffer = await sharp(rawBuffer)
+            .resize(targetW, targetH, { fit: 'fill', kernel: 'lanczos3' })
+            .png()
+            .toBuffer();
+          console.log(`[pdfGenerator]     PNG ${meta.width}×${meta.height} → escalado a ${targetW}×${targetH}px (${(pngBuffer.length / 1024).toFixed(0)}KB)`);
         }
 
         if (cmykConfig) {
