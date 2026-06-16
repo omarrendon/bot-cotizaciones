@@ -31,17 +31,20 @@ async function generatePagePdf(page, canvasConfig, cmykConfig) {
   const widthPts    = canvasConfig.width * CM_TO_POINTS;
   const heightPts   = heightCm * CM_TO_POINTS;
 
+  console.log(`[pdfGenerator] Página ${pageIndex} — tamaño: ${widthPts.toFixed(0)}×${heightPts.toFixed(0)}pts (${canvasConfig.width}×${heightCm}cm)`);
+
   const pdfDoc = await PDFDocument.create();
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const helvetica     = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const pdfPage = pdfDoc.addPage([widthPts, heightPts]);
 
-  // Cache por página: evita reprocesar el mismo SVG+rotation
   const svgEmbedCache = new Map();
 
   const visibleElements = (elements || [])
     .filter(el => el.visible !== false)
     .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+
+  console.log(`[pdfGenerator] Página ${pageIndex} — ${visibleElements.length} elemento(s) visibles`);
 
   for (const el of visibleElements) {
     const elWidthPts  = pxToPoints(el.dimensions.width,  pixelsPerCm);
@@ -58,6 +61,8 @@ async function generatePagePdf(page, canvasConfig, cmykConfig) {
       drawY = pdfYBottom + elHeightPts;
     }
 
+    console.log(`[pdfGenerator]   ${el.type} id=${el.id} rot=${rotation}° pos=(${el.position.x},${el.position.y}) dim=${el.dimensions.width}×${el.dimensions.height}px`);
+
     if (el.type === 'uniform') {
       const cacheKey = `${el.imageDataUrl}:${rotation}`;
       let pdfImage = svgEmbedCache.get(cacheKey);
@@ -67,28 +72,31 @@ async function generatePagePdf(page, canvasConfig, cmykConfig) {
 
         if (el.isSvg) {
           const svgBuffer = await decodeSvgBuffer(el.imageDataUrl);
-          // Rasterizar al tamaño del elemento a 4x para calidad de impresión.
-          // Usar dimensiones del elemento (no de la página) para evitar el límite
-          // de 32767px de Sharp en páginas grandes.
           const rawW = Math.round(elWidthPts  * SVG_PDF_SCALE);
           const rawH = Math.round(elHeightPts * SVG_PDF_SCALE);
           const clamp = Math.min(1, SHARP_MAX_PX / Math.max(rawW, rawH, 1));
           const targetW = Math.max(1, Math.round(rawW * clamp));
           const targetH = Math.max(1, Math.round(rawH * clamp));
+          console.log(`[pdfGenerator]     SVG → rasterizando a ${targetW}×${targetH}px con Sharp`);
           pngBuffer = await sharp(svgBuffer)
             .resize(targetW, targetH, { fit: 'fill' })
             .png()
             .toBuffer();
         } else {
           pngBuffer = Buffer.from(el.imageDataUrl.split(',')[1], 'base64');
+          console.log(`[pdfGenerator]     PNG decodificado: ${(pngBuffer.length / 1024).toFixed(0)}KB`);
         }
 
         if (cmykConfig) {
+          console.log(`[pdfGenerator]     Aplicando CMYK (${cmykConfig.profile})...`);
           pngBuffer = await applyRgbToCmyk(pngBuffer, cmykConfig);
         }
 
         pdfImage = await pdfDoc.embedPng(pngBuffer);
         svgEmbedCache.set(cacheKey, pdfImage);
+        console.log(`[pdfGenerator]     Imagen embebida en PDF`);
+      } else {
+        console.log(`[pdfGenerator]     Imagen tomada del cache`);
       }
 
       pdfPage.drawImage(pdfImage, {
@@ -121,21 +129,15 @@ async function generatePagePdf(page, canvasConfig, cmykConfig) {
 
     } else if (el.type === 'textPng') {
       const pngBuffer = Buffer.from(el.pngDataUrl.split(',')[1], 'base64');
+      console.log(`[pdfGenerator]     textPng "${el.id}" ${(pngBuffer.length / 1024).toFixed(0)}KB rot=${rotation}°`);
       const pdfImage  = await pdfDoc.embedPng(pngBuffer);
 
       let pdfX = (el.position.x / pixelsPerCm) * CM_TO_POINTS;
       const pdfYTop = (el.position.y / pixelsPerCm) * CM_TO_POINTS;
 
       // TextElement en Konva rota alrededor de su esquina top-left (sin offset),
-      // por lo que element.position es el ancla del texto SIN rotar.
-      // Con rotation=180°, la posición visual queda en [pos.x-w, pos.x] × [pos.y-h, pos.y],
-      // y el ancla PDF necesaria es (pos.x_pts, heightPts - pos.y_pts + h_pts).
-      // Con rotation=0° el ancla es (pos.x_pts, heightPts - pos.y_pts - h_pts) — sin cambio.
-      // TextElement en Konva rota alrededor de su esquina top-left (sin offset),
-      // por lo que element.position es el ancla del texto SIN rotar.
-      // Con rotation=180°, la posición visual queda en [pos.x-w, pos.x] × [pos.y-h, pos.y],
-      // y el ancla PDF necesaria es (pos.x_pts, heightPts - pos.y_pts + h_pts).
-      // Con rotation=0° el ancla es (pos.x_pts, heightPts - pos.y_pts - h_pts) — sin cambio.
+      // así que position es el ancla SIN rotar. Con rotation=180° la caja visual
+      // queda en [pos.x-w, pos.x] × [pos.y-h, pos.y] y el ancla PDF es distinta.
       let pdfY;
       if (rotation === 180) {
         pdfY = heightPts - pdfYTop + el.heightPts;
@@ -181,6 +183,8 @@ async function generatePagePdf(page, canvasConfig, cmykConfig) {
   const pdfBytes  = await pdfDoc.save();
   const pdfBase64 = Buffer.from(pdfBytes).toString('base64');
   const fileName  = generateFileName(cmykConfig, pageIndex);
+
+  console.log(`[pdfGenerator] Página ${pageIndex} guardada — ${(pdfBytes.length / 1024).toFixed(0)}KB → ${fileName}`);
 
   return { pageIndex, pdfBase64, fileName };
 }
